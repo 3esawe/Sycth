@@ -6,28 +6,42 @@ import pyfiglet
 # Styling 
 ascii_banner = pyfiglet.figlet_format("S c y t h",font="slant")
 print (ascii_banner)
-ascii_banner1 = pyfiglet.figlet_format("THE WHITEHEART",font="digital")
+ascii_banner1 = pyfiglet.figlet_format("THE WHITEHEART & ALESAWE",font="digital")
 print ("By \n"+ascii_banner1)
 print ("This is a opensource programe developed by me, anyone can improve it and use it for legal purposes \n\n")
 # Need to enter Email here...
 path = sys.argv[1]
 print ("File Loaded "+path)
 proj = angr.Project(path)
-obj = proj.loader.main_object
-state = proj.factory.entry_state()
+obj = proj.loader.main_object # main function address 
+shared = proj.loader.shared_objects
+state = proj.factory.entry_state() 
 print ("===========================================================")
 print ("Entry point of main programe is: %s"%hex(obj.entry))
 print ("===========================================================")
 print ("Start mem addr is: %s\nEnd mem addr is: %s "%(hex(obj.min_addr),hex(obj.max_addr)))
 print ("===========================================================")
-print ("Usage: \n seg <segments>\n sec <sections> \n Es <Entry segment> \n bkdr <To check backdoor password> \n dend <To ckeck Deadend inputs>")
+print ('''Usage:
+  seg <segments>
+  sec <sections>
+  Es <Entry segment>
+  bkdr <To check backdoor password>
+  dend <To ckeck Deadend inputs>
+  shared <Get all shared library for this process>
+  info <Checks the security mechanisms>
+  offsets <Enter your base offset>
+  quit <To quit the program>''')
 
 
-Selection = input()
+Selection = input('>> ')
+
+
 
 #Function for cheking backdoor password 
 def Pass_test():
-    state = proj.factory.entry_state(stdin = angr.SimFile)
+    # Used to create a file with constrained symbolic content
+    state = proj.factory.entry_state(stdin = angr.SimFile) 
+
     while True:
         succ = state.step()
         if len (succ.successors) == 2:
@@ -48,21 +62,48 @@ def Sim_mgr ():
     print (simgr.mp_deadended.posix.dumps(0))
 
 
-if (Selection == "seg"):
-	print ("Segments of the file are: %s"%(obj.segments))
-	
-elif(Selection == "sec"):
-    print ("Sections of the file are %s"%(obj.sections))
-	
-elif (Selection == "Es"):
-    print ("Entry is in segment: %s"%obj.find_segment_containing(obj.entry))
+
+while True:
+
+    if (Selection == "seg"):
+    	print ("Segments of the file are: %s"%(obj.segments))
+
+    elif(Selection == "sec"):
+        print ("Sections of the file are %s"%(obj.sections))
+    	
+    elif (Selection == "Es"):
+        print ("Entry is in segment: %s"%obj.find_segment_containing(obj.entry))
+        
+    elif (Selection == "bkdr"):
+        Pass_test()
+        
+    elif (Selection == "dend"):
+        Sim_mgr()
+
+    elif (Selection == "shared"):
+        print("The shared library for this process %s"%(dict(shared)))
+
+    elif (Selection == "info"):
+        print('''Arch Type = {}
+Stack Executable = {}
+PIC = {}'''.format(proj.arch, obj.execstack, obj.pic))
+    # TODO get the offset to the return address from the address that user provides
+    elif (Selection == "offsets"):
+        print ("Enter your base address")
+        base = int(str(input('>> ')), 16)
+        retAdd = state.regs.ebp + 0x4
+        print(retAdd)
+        print(base)
+        retOffest = retAdd - base
+        print (retOffest)
+
+    elif (Selection == "quit"):
+        break
+    else:
+        print ("Please select valid argument")
     
-elif (Selection == "bkdr"):
-    Pass_test()
-    
-elif (Selection == "dend"):
-    Sim_mgr() 
-else:
-    print ("Please select valid argument")
-    
+
+    Selection = input('>> ')
+
+        
     
